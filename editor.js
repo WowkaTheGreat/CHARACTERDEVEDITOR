@@ -121,8 +121,6 @@ let letters = {
     "9": {x: 325, y: 175, width: 25, height: 25},
 };
 
-
-
 let scale;
 const gameWidth = 1280;  
 const gameHeight = 720;  
@@ -369,6 +367,7 @@ class Tekst{
     {
         this.content = JSON.parse(JSON.stringify(this.oldContent));
         let newContent = [];
+        let actualLetterSize = this.letterSize * 0.75;
         for(let i = 0; i < this.content.length; i++){
 
             /*if(this.content[i].length * this.letterSize > this.textWidth){
@@ -398,8 +397,8 @@ class Tekst{
                 }
             }
             //console.log("length: " + this.content[i].length + ", textWidth: " + this.textWidth);
-            if(this.content[i].length > Math.floor(this.textWidth / this.letterSize)){
-                let maxLetters = Math.floor(this.textWidth / this.letterSize);
+            if(this.content[i].length > Math.floor(this.textWidth / actualLetterSize)){
+                let maxLetters = Math.floor(this.textWidth / actualLetterSize);
                 for(let j = 0; j < lineWords.length; j++){
                     let word = lineWords[j];
                     if(word.length > maxLetters){
@@ -456,7 +455,7 @@ class Tekst{
                         l.y, 
                         l.width, 
                         l.height, 
-                        (this.x + j * this.letterSize) * scale, 
+                        (this.x + j * this.letterSize * 0.75) * scale, 
                         (this.y + i * this.letterSize) * scale, 
                         this.letterSize * scale, 
                         this.letterSize * scale
@@ -524,7 +523,7 @@ window.addEventListener("resize", () => {
 });
 window.addEventListener("load", resizeCanvas);
 let cursor = new Cursor(56, 56, 25.5, 14.5, "cursor"); 
-let button = new Tekst(0, 200, 300, 15, "#ffff00", ["YYYYYAAAAAYYYYY", "Urządzenia od polskiej marki GALAXIA to pewność standardu, jakiego szukasz. Wybieraj przemyślane rozwiązania. GALAXIA zdobyła uznanie jako zaufany producent sprzętu elektronicznego, dostarczając na przestrzeni lat produkty, które zdobyły uznanie wśród wielu usatysfakcjonowanych klientów. Urządzenia od GALAXIA to gwarancja jakości, niezawodności i doskonałej relacji ceny do wartości."]);
+let button = new Tekst(75, 75, 850, 45, "#ffff00", ["Tło zrobione przez AI", "Edytor postaci v1.0", "Kliknij F aby przełączyć fullscreen", "za niedługo będą przyciski z tekstem i kolory dla tekstu", "potem będę pracował nad edytorem samych postaci"]);
 
 function gameLoop()
 {
