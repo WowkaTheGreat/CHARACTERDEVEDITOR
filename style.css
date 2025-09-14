@@ -1,0 +1,31 @@
+body, a, a:hover{
+    cursor: none; 
+    text-decoration: none;
+}
+body{
+    background-color: #000;
+    color: #00ff00;
+    font-family: Arial, sans-serif;
+}
+#cursor{
+    position: fixed;
+    z-index: 1000; 
+    width: 0px; 
+    height: 0px; 
+    pointer-events: none; /* allow clicks to pass through */
+    
+}
+
+#myCanvas{
+    position: fixed;
+    z-index: 1;
+    background-image: url('Images/scary-hallowen-pumpkin-with-fire-eyes-black-background-2.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+#board{
+    position: fixed;
+    z-index: 0;
+}
