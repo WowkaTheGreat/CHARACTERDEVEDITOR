@@ -241,19 +241,17 @@ class Cursor{
 }
 
 let joints = [];
+let lastZIndex = 0;
+let lastId = 0;
 function getNewJointId(joint)
 {
-    for(let i = 0; i < joints.length; i++){
-        let chcked = joints.length;
-        for(let j = 0; j < joints.length; j++){
-            if(joints[j]?.id !== i){
-                chcked--;
-            }
-        }
-        if(chcked === 0){
-            joint.id = i;
-        }
-    }
+    joint.id = lastId + 1;
+    lastId++;
+}
+function getNewJointZIndex(joint)
+{
+    joint.z = lastZIndex + 1;
+    lastZIndex++;
 }
 function updateJoints()
 {
@@ -261,28 +259,21 @@ function updateJoints()
     if(list > 0){
         let lastMinimumZ = -Infinity;
         while(list > 0){
-            let actualJoint = null;
+            let actualJoints = [];
             let actualMinimumZ = Infinity;
             for(let i = 0; i < joints.length; i++){
                 if(joints[i].z < actualMinimumZ && joints[i].z > lastMinimumZ){
                     actualMinimumZ = joints[i].z;
-                    actualJoint = joints[i];
+                    actualJoints.push(joints[i]);
+                }else if(joints[i].z === actualMinimumZ){
+                    actualJoints.push(joints[i]);
                 }
             }
             lastMinimumZ = actualMinimumZ;
-            actualJoint.update();
+            actualJoints.forEach(joint => joint.update());
             list--;
         }
     }
-}
-function getNewJointZIndex(joint)
-{
-    let maxZIndex = 0;
-    for(let i = 0; i < joints.length; i++){
-        if(joints[i]?.z > maxZIndex)
-            maxZIndex = joints[i].z;
-    }
-    joint.z = maxZIndex + 1;
 }
 function getJoint(id)
 {
@@ -320,19 +311,25 @@ class Joint{
     updateStatus()
     {
         let isThisClicked = mouse.down.x > this.x && mouse.down.y > this.y && mouse.down.x < this.x + this.width && mouse.down.y < this.y + this.width;
-        if(isThisClicked && !mouse.down.isTrue){
-            if(!this.status.selected && mouse.down.button === 0)
-                this.status.selected = true;
-            else if(this.status.selected && mouse.down.button === 2)
-                this.status.selected = false;
-        }
-        if(mouse.down.isTrue && this.status.selected && !this.status.tracking){
-            if(mouse.down.button === 0){  
+        if(mouse.down.isTrue){
+            if(isThisClicked){
+                if(!this.status.selected && mouse.down.button === 0){
+                    this.status.selected = true;
+                    mouse.down.isTrue = false;
+                }else if(this.status.selected && !this.status.tracking && mouse.down.button === 0){
+                    this.status.tracking = true;
+                    this.clickedPoint.x = this.x - mouse.down.x;
+                    this.clickedPoint.y = this.y - mouse.down.y;
+                }else if(this.status.selected && mouse.down.button === 2){
+                    this.status.selected = false;
+                    mouse.down.isTrue = false;
+                }else if(this.status.selected && mouse.down.button === 1){
+                    this.delete();
+                }
+            }else if(this.status.selected && !this.status.tracking && mouse.down.button === 0){
                 this.status.tracking = true;
                 this.clickedPoint.x = this.x - mouse.down.x;
                 this.clickedPoint.y = this.y - mouse.down.y;
-            }else if(mouse.down.button === 1 && isThisClicked){
-                this.delete();
             }
         }else if(!mouse.down.isTrue){
             this.status.tracking = false;
@@ -471,46 +468,39 @@ class Tekst{
     }
 }
 class Button{  //ma to robić tak że jak się kliknie jakimś przyciskiem to wtedy wyskakuje dymek z jakąś opcją czy coś
-    constructor(x = mouse.x, y = mouse.y, color = "#00ff00", text = "")
+    constructor(x = mouse.x, y = mouse.y, width = 100, letterSize = 50, color = ["#00ff00", "#00a000"], text = [])
     {
         this.x = x; 
         this.y = y; 
-        this.width = 0;
-        this.height = 15; 
-        this.color = color;
-        this.text = text;
+        this.width = width;
+        this.text = new Tekst(x, y, this.width, letterSize, color[0], text);
+        this.color = color[1];
         this.clickedPoint = {
             x: mouse.x,
             y: mouse.y
         };
     }
-    calculateTextWidth()
-    {
-        this.width = this.text.length * 1.2;
-    }
-    drawText()
-    {
-        for(let i = 0; i < this.text.length; i++){
-            let letter = this.text[i];
-            if(letters[letter]){
-                let l = letters[letter];
-                let size = this.height;
-                mainCtx.drawImage(atlas, l.x, l.y, l.width, l.height, (this.x + i * size) * scale, this.y * scale, size * scale, size * scale);
-            }
-        }
-    }
     draw() 
     {
-        this.calculateTextWidth();
+        this.update();
+        this.text.repairContent();
+        let height = this.text.content.length * this.text.letterSize;
         mainCtx.strokeStyle = this.color; 
         mainCtx.lineWidth = 2 * scale;
-        mainCtx.strokeRect(this.x * scale, this.y * scale, this.width * scale, this.height * scale);
+        mainCtx.strokeRect(this.x * scale, this.y * scale, this.width * scale, height * scale);
+        this.text.draw();
+    }
+    updateStatus()
+    {
+
     }
     update() 
     {
-        this.x = mouse.x + this.clickedPoint.x; 
-        this.y = mouse.y + this.clickedPoint.y; 
-        this.draw(); 
+        this.text.textWidth = this.width;
+        this.text.x = this.x;
+        this.text.y = this.y;
+        //this.x = mouse.x + this.clickedPoint.x; 
+        //this.y = mouse.y + this.clickedPoint.y; 
     }
 }
 
@@ -523,7 +513,7 @@ window.addEventListener("resize", () => {
 });
 window.addEventListener("load", resizeCanvas);
 let cursor = new Cursor(56, 56, 25.5, 14.5, "cursor"); 
-let button = new Tekst(75, 75, 850, 45, "#ffff00", ["Tło zrobione przez AI", "Edytor postaci v1.0", "Kliknij F aby przełączyć fullscreen", "za niedługo będą przyciski z tekstem i kolory dla tekstu", "potem będę pracował nad edytorem samych postaci"]);
+let button = new Button(75, 75, 100, 10, ["#ffff00", "#003ba0ff"], ["Tło zrobione przez AI", "Edytor postaci v1.0Kliknij F aby przełączyć fullscreen za niedługo będą przyciski z tekstem i kolory dla tekstu potem będę pracował nad edytorem samych postaci"]);
 
 function gameLoop()
 {
@@ -537,15 +527,3 @@ function gameLoop()
     button.draw();
 }
 gameLoop(); 
-
-/*
---------------------------------------------------------------------
-|  😈    😈    😈    🎃🎃🎃🎃    😈    😈    😈       🎃🎃        |
-|  😈    😈    😈 🎃          🎃 😈    😈    😈     🎃    🎃      |
-|  😈    😈    😈🎃            🎃😈    😈    😈    🎃      🎃     |
-|   😈 😈  😈 😈 🎃            🎃 😈 😈  😈 😈    🎃        🎃    |
-|    😈      😈  🎃            🎃  😈      😈    🎃 🎃🎃🎃🎃 🎃   |
-|    😈      😈   🎃          🎃   😈      😈   🎃            🎃  |
-|    😈      😈      🎃🎃🎃🎃      😈      😈  🎃              🎃 |
---------------------------------------------------------------------
-*/
