@@ -284,14 +284,21 @@ function getJoint(id)
     }
     return null;
 }
+function isItClicked(left, top, width, height, x, y)
+{
+    return x > left 
+    && y > top 
+    && x < left + width 
+    && y < top + height;
+}
 class Joint{
     constructor(x = 10, y = 10, color = "#00ff00") 
     {
         this.x = x; // x position
         this.y = y; // y position
         this.z = null;
-        this.width = 50; // width
-        this.height = 50; // height
+        this.width = 15; // width
+        this.height = 15; // height
         this.color = color; // color
         this.status = {tracking: false, selected: false};
         this.clickedPoint = {x: 0, y: 0};
@@ -306,11 +313,18 @@ class Joint{
         //mainCtx.fillRect(this.x * scale, this.y * scale, this.width * scale, this.height * scale); // draw rectangle
         mainCtx.strokeStyle = this.color; // set color
         mainCtx.lineWidth = 5 * scale; // set line width
-        mainCtx.strokeRect(this.x * scale, this.y * scale, this.width * scale, this.height * scale);
+        mainCtx.beginPath();
+        mainCtx.arc((this.x + this.width / 2) * scale, (this.y + this.height / 2) * scale, this.width / 2 * scale, 0, 2 * Math.PI);
+        mainCtx.stroke();
+        if(this.status.selected){
+            mainCtx.fillStyle = "white";
+            mainCtx.fill();
+        }
+       // mainCtx.strokeRect(this.x * scale, this.y * scale, this.width * scale, this.height * scale);
     }
     updateStatus()
     {
-        let isThisClicked = mouse.down.x > this.x && mouse.down.y > this.y && mouse.down.x < this.x + this.width && mouse.down.y < this.y + this.width;
+        let isThisClicked = isItClicked(this.x, this.y, this.width, this.height, mouse.down.x, mouse.down.y);
         if(mouse.down.isTrue){
             if(isThisClicked){
                 if(!this.status.selected && mouse.down.button === 0){
@@ -468,7 +482,7 @@ class Tekst{
     }
 }
 class Button{  //ma to robić tak że jak się kliknie jakimś przyciskiem to wtedy wyskakuje dymek z jakąś opcją czy coś
-    constructor(x = mouse.x, y = mouse.y, width = 100, letterSize = 50, color = ["#00ff00", "#00a000"], text = [])
+    constructor(x = mouse.x, y = mouse.y, width = 100, letterSize = 50, color = ["#00ff00", "#00a000"], text = [], onClickFunction = () => {})
     {
         this.x = x; 
         this.y = y; 
@@ -479,20 +493,28 @@ class Button{  //ma to robić tak że jak się kliknie jakimś przyciskiem to wt
             x: mouse.x,
             y: mouse.y
         };
+        this.onClickFunction = onClickFunction;
+    }
+    getHeight()
+    {
+        return this.text.content.length * this.text.letterSize;
     }
     draw() 
     {
-        this.update();
         this.text.repairContent();
-        let height = this.text.content.length * this.text.letterSize;
         mainCtx.strokeStyle = this.color; 
         mainCtx.lineWidth = 2 * scale;
-        mainCtx.strokeRect(this.x * scale, this.y * scale, this.width * scale, height * scale);
+        mainCtx.strokeRect(this.x * scale, this.y * scale, this.width * scale, this.getHeight() * scale);
         this.text.draw();
+        this.status = {clicked: false};
     }
     updateStatus()
     {
-
+        let isThisClicked = isItClicked(this.x, this.y, this.width, this.getHeight(), mouse.down.x, mouse.down.y);
+        if(isThisClicked && mouse.down.isTrue && mouse.down.button === 0){
+            this.onClickFunction();
+            mouse.down.isTrue = false;
+        }
     }
     update() 
     {
@@ -501,6 +523,8 @@ class Button{  //ma to robić tak że jak się kliknie jakimś przyciskiem to wt
         this.text.y = this.y;
         //this.x = mouse.x + this.clickedPoint.x; 
         //this.y = mouse.y + this.clickedPoint.y; 
+        this.draw();
+        this.updateStatus();
     }
 }
 
@@ -513,7 +537,7 @@ window.addEventListener("resize", () => {
 });
 window.addEventListener("load", resizeCanvas);
 let cursor = new Cursor(56, 56, 25.5, 14.5, "cursor"); 
-let button = new Button(75, 75, 100, 10, ["#ffff00", "#003ba0ff"], ["Tło zrobione przez AI", "Edytor postaci v1.0Kliknij F aby przełączyć fullscreen za niedługo będą przyciski z tekstem i kolory dla tekstu potem będę pracował nad edytorem samych postaci"]);
+let button = new Button(75, 75, 100, 10, ["#ffff00", "#003ba0ff"], ["Tło zrobione przez AI", "Edytor postaci v1.0 Kliknij F aby przełączyć fullscreen za niedługo będą kolory dla tekstu potem będę pracował nad edytorem samych postaci", "KLIKAJĄC TEN PRZYCISK DODAJESZ STAW POSTACI"], () => {new Joint(100, 40, "blue");});
 
 function gameLoop()
 {
@@ -524,6 +548,6 @@ function gameLoop()
     clearCanvas(); 
     updateJoints();
     requestAnimationFrame(gameLoop);
-    button.draw();
+    button.update();
 }
 gameLoop(); 
