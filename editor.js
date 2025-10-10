@@ -343,12 +343,9 @@ class Joint{
                     mouse.down.isTrue = false;
                 }else if(this.status.selected && !this.status.tracking && mouse.down.button === 0 && mouse.down.isTrue){
                     if(mouse.x !== mouse.down.x || mouse.y !== mouse.down.y){
-                        //console.log("przemieszczono");
-                        this.status.tracking = true;
-                    }else{
-                        //console.log("klikniento");
                         this.clickedPoint.x = this.x - mouse.down.x;
                         this.clickedPoint.y = this.y - mouse.down.y;
+                        this.status.tracking = true;
                     }
                 }else if(this.status.selected && mouse.down.button === 2){
                     this.status.selected = false;
@@ -358,12 +355,9 @@ class Joint{
                 }
             }else if(this.status.selected && !this.status.tracking && mouse.down.button === 0 && mouse.down.isTrue){
                 if(mouse.x !== mouse.down.x || mouse.y !== mouse.down.y){
-                    //console.log("przemieszczono");
-                    this.status.tracking = true;
-                }else{
-                    //console.log("klikniento");
                     this.clickedPoint.x = this.x - mouse.down.x;
                     this.clickedPoint.y = this.y - mouse.down.y;
+                    this.status.tracking = true;
                 }
             }
         }else if(!mouse.down.isTrue){
