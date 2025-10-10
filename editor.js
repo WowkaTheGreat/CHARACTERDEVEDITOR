@@ -241,6 +241,7 @@ class Cursor{
 }
 
 let joints = [];
+let bones = [];
 let lastZIndex = 0;
 let lastId = 0;
 function getNewJointId(joint)
@@ -284,6 +285,12 @@ function getJoint(id)
     }
     return null;
 }
+function updateBones()
+{
+    bones.forEach(bone => {
+        bone.update();
+    });
+}
 function isItClicked(left, top, width, height, x, y)
 {
     return x > left 
@@ -325,25 +332,39 @@ class Joint{
     updateStatus()
     {
         let isThisClicked = isItClicked(this.x, this.y, this.width, this.height, mouse.down.x, mouse.down.y);
+        let isAnyOneMove = false;
+        joints.forEach(joint => {
+            isAnyOneMove = isAnyOneMove || joint.status.tracking;
+        });
         if(mouse.down.isTrue){
             if(isThisClicked){
-                if(!this.status.selected && mouse.down.button === 0){
+                if(!this.status.selected && !isAnyOneMove && mouse.down.button === 0){
                     this.status.selected = true;
                     mouse.down.isTrue = false;
-                }else if(this.status.selected && !this.status.tracking && mouse.down.button === 0){
-                    this.status.tracking = true;
-                    this.clickedPoint.x = this.x - mouse.down.x;
-                    this.clickedPoint.y = this.y - mouse.down.y;
+                }else if(this.status.selected && !this.status.tracking && mouse.down.button === 0 && mouse.down.isTrue){
+                    if(mouse.x !== mouse.down.x || mouse.y !== mouse.down.y){
+                        //console.log("przemieszczono");
+                        this.status.tracking = true;
+                    }else{
+                        //console.log("klikniento");
+                        this.clickedPoint.x = this.x - mouse.down.x;
+                        this.clickedPoint.y = this.y - mouse.down.y;
+                    }
                 }else if(this.status.selected && mouse.down.button === 2){
                     this.status.selected = false;
                     mouse.down.isTrue = false;
                 }else if(this.status.selected && mouse.down.button === 1){
                     this.delete();
                 }
-            }else if(this.status.selected && !this.status.tracking && mouse.down.button === 0){
-                this.status.tracking = true;
-                this.clickedPoint.x = this.x - mouse.down.x;
-                this.clickedPoint.y = this.y - mouse.down.y;
+            }else if(this.status.selected && !this.status.tracking && mouse.down.button === 0 && mouse.down.isTrue){
+                if(mouse.x !== mouse.down.x || mouse.y !== mouse.down.y){
+                    //console.log("przemieszczono");
+                    this.status.tracking = true;
+                }else{
+                    //console.log("klikniento");
+                    this.clickedPoint.x = this.x - mouse.down.x;
+                    this.clickedPoint.y = this.y - mouse.down.y;
+                }
             }
         }else if(!mouse.down.isTrue){
             this.status.tracking = false;
@@ -361,6 +382,63 @@ class Joint{
     delete()
     {
         joints = joints.filter(i => i.id !== this.id);
+    }
+}
+class Bone{
+    constructor(jointA = null, jointB = null, color = "#00ff00"){
+        this.jointA = jointA;
+        this.jointB = jointB;
+        this.color = color;
+        this.z = null;
+        bones.push(this);
+        this.updateZindex();
+        this.length = this.getLength();
+    }
+    updateZindex()
+    {
+        if(this.jointA && this.jointB){
+            if(this.jointA.z > this.jointB.z){
+                this.z = this.jointB.z;
+            }else{
+                this.z = this.jointA.z;
+            }
+        }
+    }
+    getLength()
+    {
+        if(this.jointA && this.jointB){
+            let a = this.jointB.x - this.jointA.x;
+            let b = this.jointB.y - this.jointA.y;
+            return Math.sqrt(a * a + b * b);
+        }
+    }
+    draw()
+    {
+        if(this.jointA && this.jointB){
+            mainCtx.strokeStyle = this.color;
+            mainCtx.lineWidth = 5 * scale;
+            mainCtx.beginPath();
+            mainCtx.moveTo((this.jointA.x + this.jointA.width / 2) * scale, (this.jointA.y + this.jointA.height / 2) * scale);
+            mainCtx.lineTo((this.jointB.x + this.jointB.width / 2) * scale, (this.jointB.y + this.jointB.height / 2) * scale);
+            mainCtx.stroke();
+        }
+    }
+    update()
+    {
+        this.updateZindex();
+        if(this.jointA && this.jointB && this.length !== this.getLength()){
+            let deffX = this.jointA.x - this.jointB.x;
+            let deffY = this.jointA.y - this.jointB.y;
+            let dist = this.getLength();
+            let deff = (this.length - dist) / dist;
+            let x = deffX * deff;
+            let y = deffY * deff;
+            this.jointA.x += x * 0.5;
+            this.jointA.y += y * 0.5;
+            this.jointB.x -= x * 0.5;
+            this.jointB.y -= y * 0.5;
+        }
+        this.draw();
     }
 }
 class Tekst{
@@ -528,7 +606,6 @@ class Button{  //ma to robić tak że jak się kliknie jakimś przyciskiem to wt
     }
 }
 
-
 //let joint = new Joint(100, 100, 50, 50, "#00ff00"); 
 
 window.addEventListener("resize", () => {
@@ -546,8 +623,9 @@ function gameLoop()
     if(!document.getElementById("myCanvas")) 
         board.appendChild(mainCanvas);
     clearCanvas(); 
+    updateBones();
     updateJoints();
-    requestAnimationFrame(gameLoop);
     button.update();
+    requestAnimationFrame(gameLoop);
 }
 gameLoop(); 
