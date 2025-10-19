@@ -173,11 +173,11 @@ let mouse = {
         button: 0
     }
 }
-mainCanvas.addEventListener("mousemove", (event) => {
+window.addEventListener("mousemove", (event) => {
     mouse.x = event.offsetX / scale; // calculate mouse x position
     mouse.y = event.offsetY / scale; // calculate mouse y position
 });
-mainCanvas.addEventListener("mousedown", (event) => {
+window.addEventListener("mousedown", (event) => {
     mouse.down.x = event.offsetX / scale; // calculate mouse down x position
     mouse.down.y = event.offsetY / scale; // calculate mouse down y position
     mouse.down.isTrue = true; // set mouse down state
@@ -287,10 +287,10 @@ function getJoint(id)
     }
     return null;
 }
-function updateBones()
+function updateBones(updatesNumber)
 {
     bones.forEach(bone => {
-        bone.update();
+        bone.update(updatesNumber);
     });
 }
 function isItClicked(left, top, width, height, x, y)
@@ -389,13 +389,38 @@ class Joint{
                 });
                 if(jointToJoin !== null){
                     mainCtx.strokeStyle = ["red", "green", "blue", "white"][Math.floor(Math.random() * 4)];;
-                    mainCtx.lineWidth = /*5*/1 + Math.floor(Math.random() * 7) * scale;
+                    mainCtx.lineWidth = 1 + Math.floor(Math.random() * 7) * scale;
                     mainCtx.beginPath();
                     mainCtx.moveTo((this.x + this.width / 2) * scale, (this.y + this.height / 2) * scale);
                     mainCtx.lineTo((jointToJoin.x + jointToJoin.width / 2) * scale, (jointToJoin.y + jointToJoin.height / 2) * scale);
                     mainCtx.stroke();
+                    if(isItClicked(jointToJoin.x, jointToJoin.y, jointToJoin.width, jointToJoin.height, mouse.x, mouse.y) && mouse.down.isTrue){
+                        let canCreateBone = true;
+                        bones.forEach(bone => {
+                            if(bone.jointA === this && bone.jointB === jointToJoin || bone.jointA === jointToJoin && bone.jointB === this){
+                                canCreateBone = false;
+                            }
+                        });
+                        if(canCreateBone){
+                            mouse.down.isTrue = false;
+                            new Bone(this, jointToJoin);
+                            jointToJoin = null;
+                            this.status.boning = false;
+                        }
+                    }
                 }
             }
+        }
+
+        if(this.x + this.width > mainCanvas.width / scale){
+            this.x = mainCanvas.width / scale - this.width;
+        }else if(this.x < 0){
+            this.x = 0;
+        }
+        if(this.y + this.height > mainCanvas.height / scale){
+            this.y = mainCanvas.height / scale - this.height;
+        }else if(this.y < 0){
+            this.y = 0;
         }
         this.draw(); 
     }
@@ -447,22 +472,38 @@ class Bone{
             mainCtx.stroke();
         }
     }
-    update()
+    update(updatesNumber)
     {
-        this.updateZindex();
-        if(this.jointA && this.jointB && this.length !== this.getLength()){
-            let deffX = this.jointA.x - this.jointB.x;
-            let deffY = this.jointA.y - this.jointB.y;
-            let dist = this.getLength();
-            let deff = (this.length - dist) / dist;
-            let x = deffX * deff;
-            let y = deffY * deff;
-            this.jointA.x += x * 0.5;
-            this.jointA.y += y * 0.5;
-            this.jointB.x -= x * 0.5;
-            this.jointB.y -= y * 0.5;
+        if(updatesNumber < 1){
+            updatesNumber = 1;
         }
-        this.draw();
+        this.updateZindex();
+        let jointsAreThere = 0;
+        if(this.jointA && this.jointB){
+            joints.forEach(joint => {
+                if(joint === this.jointA || joint === this.jointB){
+                    jointsAreThere++;
+                }
+            });
+        }
+        if(jointsAreThere === 2){
+            for(let i = 0; i < updatesNumber; i++){  
+                if(this.length !== this.getLength()){
+                    let deffX = this.jointA.x - this.jointB.x;
+                    let deffY = this.jointA.y - this.jointB.y;
+                    let dist = this.getLength();
+                    let deff = (this.length - dist) / dist;
+                    let x = deffX * deff;
+                    let y = deffY * deff;
+                    this.jointA.x += x * 0.5;
+                    this.jointA.y += y * 0.5;
+                    this.jointB.x -= x * 0.5;
+                    this.jointB.y -= y * 0.5;
+                }
+            }
+            this.draw();
+        }
+        
     }
 }
 class Tekst{
@@ -647,7 +688,7 @@ function gameLoop()
     if(!document.getElementById("myCanvas")) 
         board.appendChild(mainCanvas);
     clearCanvas(); 
-    updateBones();
+    updateBones(4);
     updateJoints();
     button.update();
     requestAnimationFrame(gameLoop);
