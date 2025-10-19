@@ -244,6 +244,8 @@ let joints = [];
 let bones = [];
 let lastZIndex = 0;
 let lastId = 0;
+let jointToJoin = null;
+
 function getNewJointId(joint)
 {
     joint.id = lastId + 1;
@@ -307,7 +309,7 @@ class Joint{
         this.width = 15; // width
         this.height = 15; // height
         this.color = color; // color
-        this.status = {tracking: false, selected: false};
+        this.status = {tracking: false, selected: false, pinned: false, boning: false, menu: false};
         this.clickedPoint = {x: 0, y: 0};
         this.id = null;
         joints.push(this);
@@ -324,7 +326,10 @@ class Joint{
         mainCtx.arc((this.x + this.width / 2) * scale, (this.y + this.height / 2) * scale, this.width / 2 * scale, 0, 2 * Math.PI);
         mainCtx.stroke();
         if(this.status.selected){
-            mainCtx.fillStyle = "white";
+            if(this.status.boning) 
+                mainCtx.fillStyle = ["red", "green", "blue", "white"][Math.floor(Math.random() * 4)];
+            else
+                mainCtx.fillStyle = "white";
             mainCtx.fill();
         }
        // mainCtx.strokeRect(this.x * scale, this.y * scale, this.width * scale, this.height * scale);
@@ -341,6 +346,9 @@ class Joint{
                 if(!this.status.selected && !isAnyOneMove && mouse.down.button === 0){
                     this.status.selected = true;
                     mouse.down.isTrue = false;
+                }else if(this.status.selected && !isAnyOneMove && mouse.down.button === 1 && !this.status.menu){
+                    this.status.menu = true;
+                    mouse.down.isTrue = false;
                 }else if(this.status.selected && !this.status.tracking && mouse.down.button === 0 && mouse.down.isTrue){
                     if(mouse.x !== mouse.down.x || mouse.y !== mouse.down.y){
                         this.clickedPoint.x = this.x - mouse.down.x;
@@ -350,6 +358,7 @@ class Joint{
                 }else if(this.status.selected && mouse.down.button === 2){
                     this.status.selected = false;
                     mouse.down.isTrue = false;
+                    this.status.menu = false;
                 }else if(this.status.selected && mouse.down.button === 1){
                     this.delete();
                 }
@@ -367,11 +376,32 @@ class Joint{
     update() 
     {
         this.updateStatus();
-        if(this.status.tracking && this.status.selected){
-            this.x = mouse.x + this.clickedPoint.x; 
-            this.y = mouse.y + this.clickedPoint.y; 
+        if(this.status.selected){
+            if(this.status.tracking){
+                this.x = mouse.x + this.clickedPoint.x; 
+                this.y = mouse.y + this.clickedPoint.y; 
+            }else if(this.status.boning){
+                joints.forEach(joint => {
+                    let iIC = isItClicked(joint.x, joint.y, joint.width, joint.height, mouse.x, mouse.y);
+                    if(iIC && joint !== this){
+                        jointToJoin = joint;
+                    }
+                });
+                if(jointToJoin !== null){
+                    mainCtx.strokeStyle = ["red", "green", "blue", "white"][Math.floor(Math.random() * 4)];;
+                    mainCtx.lineWidth = /*5*/1 + Math.floor(Math.random() * 7) * scale;
+                    mainCtx.beginPath();
+                    mainCtx.moveTo((this.x + this.width / 2) * scale, (this.y + this.height / 2) * scale);
+                    mainCtx.lineTo((jointToJoin.x + jointToJoin.width / 2) * scale, (jointToJoin.y + jointToJoin.height / 2) * scale);
+                    mainCtx.stroke();
+                }
+            }
         }
         this.draw(); 
+    }
+    drawMenu()
+    {
+
     }
     delete()
     {
