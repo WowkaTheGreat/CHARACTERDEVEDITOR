@@ -315,12 +315,17 @@ class Joint{
         joints.push(this);
         getNewJointId(this);
         getNewJointZIndex(this);
+        this.createButtons();
     }
     draw() 
     {
         //mainCtx.fillStyle = this.color; // set color
         //mainCtx.fillRect(this.x * scale, this.y * scale, this.width * scale, this.height * scale); // draw rectangle
-        mainCtx.strokeStyle = this.color; // set color
+        let color = this.color;
+        if(this.status.menu){
+            color = "#ffff00";
+        }
+        mainCtx.strokeStyle = color; // set color
         mainCtx.lineWidth = 5 * scale; // set line width
         mainCtx.beginPath();
         mainCtx.arc((this.x + this.width / 2) * scale, (this.y + this.height / 2) * scale, this.width / 2 * scale, 0, 2 * Math.PI);
@@ -346,8 +351,11 @@ class Joint{
                 if(!this.status.selected && !isAnyOneMove && mouse.down.button === 0){
                     this.status.selected = true;
                     mouse.down.isTrue = false;
-                }else if(this.status.selected && !isAnyOneMove && mouse.down.button === 1 && !this.status.menu){
-                    this.status.menu = true;
+                }else if(this.status.selected && !isAnyOneMove && mouse.down.button === 1){
+                    if(!this.status.menu)
+                        this.status.menu = true;
+                    else
+                        this.status.menu = false;
                     mouse.down.isTrue = false;
                 }else if(this.status.selected && !this.status.tracking && mouse.down.button === 0 && mouse.down.isTrue){
                     if(mouse.x !== mouse.down.x || mouse.y !== mouse.down.y){
@@ -360,7 +368,8 @@ class Joint{
                     mouse.down.isTrue = false;
                     this.status.menu = false;
                 }else if(this.status.selected && mouse.down.button === 1){
-                    this.delete();
+                    //this.delete();
+                    console.log("Joint ID: " + this.id);
                 }
             }else if(this.status.selected && !this.status.tracking && mouse.down.button === 0 && mouse.down.isTrue){
                 if(mouse.x !== mouse.down.x || mouse.y !== mouse.down.y){
@@ -371,6 +380,9 @@ class Joint{
             }
         }else if(!mouse.down.isTrue){
             this.status.tracking = false;
+            if(!this.status.selected && this.status.menu){
+                this.status.menu = false;
+            }
         }
     }
     update() 
@@ -394,7 +406,8 @@ class Joint{
                     mainCtx.moveTo((this.x + this.width / 2) * scale, (this.y + this.height / 2) * scale);
                     mainCtx.lineTo((jointToJoin.x + jointToJoin.width / 2) * scale, (jointToJoin.y + jointToJoin.height / 2) * scale);
                     mainCtx.stroke();
-                    if(isItClicked(jointToJoin.x, jointToJoin.y, jointToJoin.width, jointToJoin.height, mouse.x, mouse.y) && mouse.down.isTrue){
+                    if(isItClicked(jointToJoin.x, jointToJoin.y, jointToJoin.width, jointToJoin.height, mouse.down.x, mouse.down.y) && mouse.down.isTrue && mouse.down.button === 2 && !jointToJoin.status.selected){
+                        mouse.down.isTrue = false;
                         let canCreateBone = true;
                         bones.forEach(bone => {
                             if(bone.jointA === this && bone.jointB === jointToJoin || bone.jointA === jointToJoin && bone.jointB === this){
@@ -402,7 +415,7 @@ class Joint{
                             }
                         });
                         if(canCreateBone){
-                            mouse.down.isTrue = false;
+                            //mouse.down.isTrue = false;
                             new Bone(this, jointToJoin);
                             jointToJoin = null;
                             this.status.boning = false;
@@ -423,6 +436,17 @@ class Joint{
             this.y = 0;
         }
         this.draw(); 
+
+        this.buttons.forEach(button => {
+            button.update();
+        });
+    }
+    createButtons()
+    {
+        this.buttons = [];
+        this.buttons.push(new Button(this.x + this.width + 10, this.y, 100, 30, ["#00ff00", "#007700"], ["Pin/Unpin"], () => {
+            this.status.selected = !this.status.selected;   
+        }));
     }
     drawMenu()
     {
